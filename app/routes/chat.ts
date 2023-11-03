@@ -9,6 +9,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	if (!prompt) return null;
 
 	//Naive attempt to "cache" the RAG model
+	//This is an in-memory cache, in the real world you want a Vector DB.
 	const getRag = singleton("rag", () => buildRAG());
 	const llm = await getRag;
 

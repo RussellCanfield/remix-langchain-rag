@@ -44,3 +44,14 @@ ul > li {
     margin-bottom: 0.5rem;
     border-radius: 0.25rem;
   }
+
+.chat-message {
+  white-space: pre-line;
+}
+
+pre {
+  background-color: rgb(5, 5, 5, 1);
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+}
