@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
+type Senders = "me" | "bot";
+
+type ChatMessage = {
+	from: Senders;
+	message: string;
+};
+
 const Home = () => {
 	const [lastMessage, setLastMessage] = useState<string | null>(null);
-	const [messages, setMessages] = useState<string[]>([]);
+	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const [loading, setLoading] = useState(false);
 
 	const handleChatMessage = (
@@ -19,7 +26,10 @@ const Home = () => {
 
 			setMessages((oldMessages) => [
 				...(oldMessages ?? []),
-				`Me: ${prompt}`,
+				{
+					from: "me",
+					message: prompt,
+				},
 			]);
 
 			setLoading(true);
@@ -28,13 +38,19 @@ const Home = () => {
 				setLoading(false);
 				reader = response.body!.getReader();
 
-				let data = "MFE Helper: ";
+				let data = "Bot: ";
 
 				const readStream = async () => {
 					const { done, value } = await reader!.read();
 
 					if (done) {
-						setMessages((oldMessages) => [...oldMessages, data]);
+						setMessages((oldMessages) => [
+							...oldMessages,
+							{
+								from: "bot",
+								message: data.replace("Bot: ", ""),
+							},
+						]);
 						setLastMessage(null);
 						reader?.releaseLock();
 						return;
@@ -50,21 +66,31 @@ const Home = () => {
 		}
 	};
 
+	const chatMessages = useMemo(() => {
+		return messages.map(({ from, message }, index) => (
+			<li key={index}>
+				<Markdown
+					className={`chat-message ${
+						from === "bot"
+							? "bg-slate-800 text-white"
+							: "bg-slate-500 text-white"
+					}`}
+				>
+					{`${from === "bot" ? "Bot: " : "Me: "} ${message}`}
+				</Markdown>
+			</li>
+		));
+	}, [messages]);
+
 	return (
 		<div className="rounded-md bg-slate-100 shadow-md h-5/6 flex flex-col">
-			<ul className="p-6 flex-1 overflow-auto">
-				{messages.map((message, index) => (
-					<li key={index}>
-						<Markdown className={"chat-message"}>
-							{message}
-						</Markdown>
-					</li>
-				))}
+			<ul className="flex-1 overflow-auto bg-slate-500 border-2 border-slate-400">
+				{chatMessages}
 				{lastMessage && (
 					<li style={{ whiteSpace: "pre-line" }}>
 						<Markdown
 							children={lastMessage}
-							className={"chat-message"}
+							className={"chat-message bg-slate-800 text-white"}
 							components={{
 								code(props) {
 									const {
@@ -96,7 +122,11 @@ const Home = () => {
 						/>
 					</li>
 				)}
-				{loading && <div className="skeleton skeleton-text"></div>}
+				{loading && (
+					<div className="chat-message bg-slate-800 text-white">
+						<div className="skeleton skeleton-text"></div>
+					</div>
+				)}
 			</ul>
 			<div className="h-16">
 				<textarea

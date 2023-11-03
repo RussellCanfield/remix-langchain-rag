@@ -26,27 +26,28 @@ ul > li {
 }
 
 .skeleton {
-    animation: skeleton-loading 1s linear infinite alternate;
+  animation: skeleton-loading 1s linear infinite alternate;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-color: hsl(200, 20%, 80%);
   }
-  
-  @keyframes skeleton-loading {
-    0% {
-      background-color: hsl(200, 20%, 80%);
-    }
-    100% {
-      background-color: hsl(200, 20%, 95%);
-    }
+  100% {
+    background-color: hsl(200, 20%, 95%);
   }
-  
-  .skeleton-text {
-    width: 100%;
-    height: 1em;
-    margin-bottom: 0.5rem;
-    border-radius: 0.25rem;
-  }
+}
+
+.skeleton-text {
+  width: 100%;
+  height: 1em;
+  margin-bottom: 0.5rem;
+  border-radius: 0.25rem;
+}
 
 .chat-message {
-  white-space: pre-line;
+  white-space: normal;
+  padding: 12px;
 }
 
 pre {
@@ -54,4 +55,12 @@ pre {
   color: #fff;
   padding: 12px;
   border-radius: 8px;
+}
+
+ol li {
+  padding: 12px 0px;
+}
+
+ul li {
+  padding: unset;
 }

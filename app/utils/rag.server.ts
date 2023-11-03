@@ -14,6 +14,7 @@ import {
 } from "langchain/schema/runnable";
 import { StringOutputParser } from "langchain/schema/output_parser";
 import { formatDocumentsAsString } from "langchain/util/document";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
 //Various youtube sources to use transcripts as context.
 const youtubeVideoSources = [
@@ -45,14 +46,24 @@ const webLoaders = webSources.map((url) =>
 export const buildRAG = async () => {
 	const loaders = await Promise.all([...youtubeLoaders, ...webLoaders]);
 
-	const [docs] = loaders;
+	const docs = loaders.reduce((ac, l) => {
+		ac.push(l[0]);
+		return ac;
+	}, []);
 
 	const model = new ChatOpenAI({
 		streaming: true,
 		modelName: "gpt-3.5-turbo-0613",
 	});
+
+	const textSplitter = new RecursiveCharacterTextSplitter({
+		chunkSize: 2000,
+		chunkOverlap: 0,
+	});
+	const splitDocs = await textSplitter.splitDocuments(docs);
+
 	const vectorStore = await HNSWLib.fromDocuments(
-		docs,
+		splitDocs,
 		new OpenAIEmbeddings()
 	);
 	const vectorStoreRetriever = vectorStore.asRetriever();

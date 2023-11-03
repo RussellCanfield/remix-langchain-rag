@@ -24,7 +24,7 @@ export default function App() {
 			</head>
 			<body>
 				<div className="flex flex-col h-full">
-					<div className="h-32 bg-slate-900 flex justify-center content-center flex-wrap">
+					<div className="h-32 bg-slate-900 flex justify-center content-center flex-wrap min-h-[128px]">
 						<p className="text-slate-100 relative text-xl">
 							Micro Frontend RAG Chatbot
 						</p>
