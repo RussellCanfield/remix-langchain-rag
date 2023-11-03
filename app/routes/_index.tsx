@@ -73,7 +73,7 @@ const Home = () => {
 					className={`chat-message ${
 						from === "bot"
 							? "bg-slate-800 text-white"
-							: "bg-slate-500 text-white"
+							: "bg-slate-400 text-white"
 					}`}
 				>
 					{`${from === "bot" ? "Bot: " : "Me: "} ${message}`}
