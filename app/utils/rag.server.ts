@@ -15,10 +15,11 @@ import {
 import { StringOutputParser } from "langchain/schema/output_parser";
 import { formatDocumentsAsString } from "langchain/util/document";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { Document } from "langchain/document";
 
 //Various youtube sources to use transcripts as context.
 const youtubeVideoSources = [
-	"https://youtu.be/bXfK873ASzY",
+	"https://www.youtube.com/watch?v=bXfK873ASzY&ab_channel=RussellCanfield",
 	"https://www.youtube.com/watch?v=w58aZjACETQ&ab_channel=JackHerrington",
 	"https://www.youtube.com/watch?v=D3XYAx30CNc&ab_channel=JackHerrington",
 	"https://www.youtube.com/watch?v=x22F4hSdZJM&ab_channel=JackHerrington",
@@ -50,6 +51,17 @@ export const buildRAG = async () => {
 		ac.push(l[0]);
 		return ac;
 	}, []);
+
+	docs.push(
+		new Document({
+			pageContent: `The following URL: \n
+				- https://www.youtube.com/watch?v=bXfK873ASzY&ab_channel=RussellCanfield 
+				is a youtube video showing how to use Module Federation along with examples on what it can do.`,
+			metadata: {
+				source: "https://www.youtube.com/watch?v=bXfK873ASzY&ab_channel=RussellCanfield",
+			},
+		})
+	);
 
 	const model = new ChatOpenAI({
 		streaming: true,

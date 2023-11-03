@@ -1,7 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo } from "react";
 import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { dark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import LiteYouTubeEmbed from "react-lite-youtube-embed";
+import "react-lite-youtube-embed/dist/LiteYouTubeEmbed.css";
 
 type Senders = "me" | "bot";
 
@@ -38,7 +40,7 @@ const Home = () => {
 				setLoading(false);
 				reader = response.body!.getReader();
 
-				let data = "Bot: ";
+				let data = "";
 
 				const readStream = async () => {
 					const { done, value } = await reader!.read();
@@ -48,7 +50,7 @@ const Home = () => {
 							...oldMessages,
 							{
 								from: "bot",
-								message: data.replace("Bot: ", ""),
+								message: data,
 							},
 						]);
 						setLastMessage(null);
@@ -63,21 +65,80 @@ const Home = () => {
 
 				readStream();
 			});
+
+			event.currentTarget.value = "";
 		}
 	};
+
+	const ChatMessage = memo(({ from, message }: ChatMessage) => {
+		return (
+			<Markdown
+				children={`${from === "bot" ? "Bot: " : "Me: "} ${message}`}
+				className={`chat-message ${
+					from === "bot"
+						? "bg-slate-800 text-white"
+						: "bg-slate-400 text-white"
+				}`}
+				components={{
+					p(props) {
+						const { children, className, node, ...rest } = props;
+
+						//Special handling because I'm giving it a specific format.
+						const isVideo = /v=(\w+)/.exec(String(children) || "");
+
+						console.log(isVideo);
+
+						if (isVideo) {
+							return (
+								<LiteYouTubeEmbed
+									id={isVideo[1]}
+									title={""}
+								></LiteYouTubeEmbed>
+							);
+						} else {
+							return <p>{children}</p>;
+						}
+					},
+					code(props) {
+						const { children, className, node, ...rest } = props;
+
+						const languageType = /language-(\w+)/.exec(
+							className || ""
+						);
+
+						if (languageType) {
+							return (
+								<SyntaxHighlighter
+									children={String(children).replace(
+										/\n$/,
+										""
+									)}
+									style={dracula}
+									language={languageType[1]}
+								/>
+							);
+						} else {
+							return (
+								<SyntaxHighlighter
+									children={String(children).replace(
+										/\n$/,
+										""
+									)}
+									style={dracula}
+									language={""}
+								/>
+							);
+						}
+					},
+				}}
+			/>
+		);
+	});
 
 	const chatMessages = useMemo(() => {
 		return messages.map(({ from, message }, index) => (
 			<li key={index}>
-				<Markdown
-					className={`chat-message ${
-						from === "bot"
-							? "bg-slate-800 text-white"
-							: "bg-slate-400 text-white"
-					}`}
-				>
-					{`${from === "bot" ? "Bot: " : "Me: "} ${message}`}
-				</Markdown>
+				<ChatMessage from={from} message={message} />
 			</li>
 		));
 	}, [messages]);
@@ -88,38 +149,7 @@ const Home = () => {
 				{chatMessages}
 				{lastMessage && (
 					<li style={{ whiteSpace: "pre-line" }}>
-						<Markdown
-							children={lastMessage}
-							className={"chat-message bg-slate-800 text-white"}
-							components={{
-								code(props) {
-									const {
-										children,
-										className,
-										node,
-										...rest
-									} = props;
-									const match = /javascript-(\w+)/.exec(
-										className || ""
-									);
-									return match ? (
-										<SyntaxHighlighter
-											children={String(children).replace(
-												/\n$/,
-												""
-											)}
-											style={dark}
-											language={match[1]}
-											PreTag="div"
-										/>
-									) : (
-										<code {...rest} className={className}>
-											{children}
-										</code>
-									);
-								},
-							}}
-						/>
+						<ChatMessage from="bot" message={lastMessage} />
 					</li>
 				)}
 				{loading && (
