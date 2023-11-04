@@ -84,20 +84,21 @@ const Home = () => {
 						const { children, className, node, ...rest } = props;
 
 						//Special handling because I'm giving it a specific format.
-						const isVideo = /v=(\w+)/.exec(String(children) || "");
+						const hasVideo = /v=(\w+)/.exec(String(message) || "");
 
-						console.log(isVideo);
+						console.log(message, hasVideo);
 
-						if (isVideo) {
-							return (
-								<LiteYouTubeEmbed
-									id={isVideo[1]}
-									title={""}
-								></LiteYouTubeEmbed>
-							);
-						} else {
-							return <p>{children}</p>;
-						}
+						return (
+							<>
+								<p>{children}</p>
+								{hasVideo && (
+									<LiteYouTubeEmbed
+										id={hasVideo[1]}
+										title={""}
+									></LiteYouTubeEmbed>
+								)}
+							</>
+						);
 					},
 					code(props) {
 						const { children, className, node, ...rest } = props;
@@ -106,29 +107,13 @@ const Home = () => {
 							className || ""
 						);
 
-						if (languageType) {
-							return (
-								<SyntaxHighlighter
-									children={String(children).replace(
-										/\n$/,
-										""
-									)}
-									style={dracula}
-									language={languageType[1]}
-								/>
-							);
-						} else {
-							return (
-								<SyntaxHighlighter
-									children={String(children).replace(
-										/\n$/,
-										""
-									)}
-									style={dracula}
-									language={""}
-								/>
-							);
-						}
+						return (
+							<SyntaxHighlighter
+								children={String(children).replace(/\n$/, "")}
+								style={dracula}
+								language={languageType ? languageType[1] : ""}
+							/>
+						);
 					},
 				}}
 			/>
