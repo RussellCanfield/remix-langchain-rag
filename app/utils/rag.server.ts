@@ -47,10 +47,7 @@ const webLoaders = webSources.map((url) =>
 export const buildRAG = async () => {
 	const loaders = await Promise.all([...youtubeLoaders, ...webLoaders]);
 
-	const docs = loaders.reduce((ac, l) => {
-		ac.push(l[0]);
-		return ac;
-	}, []);
+	const docs = loaders.map((l) => l[0]);
 
 	docs.push(
 		new Document({

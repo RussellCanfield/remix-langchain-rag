@@ -86,8 +86,6 @@ const Home = () => {
 						//Special handling because I'm giving it a specific format.
 						const hasVideo = /v=(\w+)/.exec(String(message) || "");
 
-						console.log(message, hasVideo);
-
 						return (
 							<>
 								<p>{children}</p>
