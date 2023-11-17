@@ -72,49 +72,68 @@ const Home = () => {
 
 	const ChatMessage = memo(({ from, message }: ChatMessage) => {
 		return (
-			<Markdown
-				children={`${from === "bot" ? "Bot: " : "Me: "} ${message}`}
-				className={`chat-message ${
-					from === "bot"
-						? "bg-zinc-800 text-white"
-						: "bg-zinc-400 text-white"
-				}`}
-				components={{
-					p(props) {
-						const { children, className, node, ...rest } = props;
+			<div className="flex mb-2 items-center gap-4 p-4">
+				{from === "me" && (
+					<span className="rounded-[50%] h-[50px] w-[50px] bg-slate-100 leading-[3em] text-center">
+						Me
+					</span>
+				)}
+				<Markdown
+					children={message}
+					className={
+						"chat-message text-white border-border-color rounded-md border-2 flex-1"
+					}
+					components={{
+						p(props) {
+							const { children, className, node, ...rest } =
+								props;
 
-						//Special handling because I'm giving it a specific format.
-						const hasVideo = /v=(\w+)/.exec(String(message) || "");
+							//Special handling because I'm giving it a specific format.
+							const hasVideo = /v=(\w+)/.exec(
+								String(message) || ""
+							);
 
-						return (
-							<>
-								<p className="text-white">{children}</p>
-								{hasVideo && (
-									<LiteYouTubeEmbed
-										id={hasVideo[1]}
-										title={""}
-									></LiteYouTubeEmbed>
-								)}
-							</>
-						);
-					},
-					code(props) {
-						const { children, className, node, ...rest } = props;
+							return (
+								<>
+									<p className="text-white">{children}</p>
+									{hasVideo && (
+										<LiteYouTubeEmbed
+											id={hasVideo[1]}
+											title={""}
+										></LiteYouTubeEmbed>
+									)}
+								</>
+							);
+						},
+						code(props) {
+							const { children, className, node, ...rest } =
+								props;
 
-						const languageType = /language-(\w+)/.exec(
-							className || ""
-						);
+							const languageType = /language-(\w+)/.exec(
+								className || ""
+							);
 
-						return (
-							<SyntaxHighlighter
-								children={String(children).replace(/\n$/, "")}
-								style={dracula}
-								language={languageType ? languageType[1] : ""}
-							/>
-						);
-					},
-				}}
-			/>
+							return (
+								<SyntaxHighlighter
+									children={String(children).replace(
+										/\n$/,
+										""
+									)}
+									style={dracula}
+									language={
+										languageType ? languageType[1] : ""
+									}
+								/>
+							);
+						},
+					}}
+				/>
+				{from === "bot" && (
+					<span className="rounded-[50%] h-[50px] w-[50px] bg-slate-100 leading-[3em] text-center">
+						Bot
+					</span>
+				)}
+			</div>
 		);
 	});
 
