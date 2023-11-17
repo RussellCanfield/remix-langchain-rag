@@ -22,14 +22,14 @@ export default function App() {
 				<Meta />
 				<Links />
 			</head>
-			<body>
+			<body className="font-roboto">
 				<div className="flex flex-col h-full">
-					<div className="h-32 bg-slate-900 flex justify-center content-center flex-wrap min-h-[128px]">
-						<p className="text-slate-100 relative text-xl">
+					<div className="h-32 bg-dark flex justify-center content-center flex-wrap min-h-[128px]">
+						<p className="text-slate-50 relative text-xl">
 							Micro Frontend RAG Chatbot
 						</p>
 					</div>
-					<div className="flex-1 bg-slate-800 pt-12 main-background">
+					<div className="flex-1 bg-dark pt-12 main-background">
 						<div className="container h-full mx-auto">
 							<Outlet />
 						</div>

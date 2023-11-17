@@ -76,8 +76,8 @@ const Home = () => {
 				children={`${from === "bot" ? "Bot: " : "Me: "} ${message}`}
 				className={`chat-message ${
 					from === "bot"
-						? "bg-slate-800 text-white"
-						: "bg-slate-400 text-white"
+						? "bg-zinc-800 text-white"
+						: "bg-zinc-400 text-white"
 				}`}
 				components={{
 					p(props) {
@@ -88,7 +88,7 @@ const Home = () => {
 
 						return (
 							<>
-								<p>{children}</p>
+								<p className="text-white">{children}</p>
 								{hasVideo && (
 									<LiteYouTubeEmbed
 										id={hasVideo[1]}
@@ -127,8 +127,8 @@ const Home = () => {
 	}, [messages]);
 
 	return (
-		<div className="rounded-md bg-slate-100 shadow-md h-5/6 flex flex-col">
-			<ul className="flex-1 overflow-auto bg-slate-500 border-2 border-slate-400">
+		<div className="rounded-md shadow-md h-5/6 flex flex-col">
+			<ul className="flex-1 overflow-auto bg-gradient-to-r from-zinc-950 to-zinc-900 border-2 border-border-color">
 				{chatMessages}
 				{lastMessage && (
 					<li style={{ whiteSpace: "pre-line" }}>
@@ -136,8 +136,9 @@ const Home = () => {
 					</li>
 				)}
 				{loading && (
-					<div className="chat-message bg-slate-800 text-white">
-						<div className="skeleton skeleton-text"></div>
+					<div className="chat-message bg-zinc-800 text-white">
+						<div className="skeleton"></div>
+						<div className="skeleton animation"></div>
 					</div>
 				)}
 			</ul>
