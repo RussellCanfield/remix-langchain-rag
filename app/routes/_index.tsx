@@ -95,7 +95,7 @@ const Home = () => {
 
 	return (
 		<div className="rounded-md shadow-md h-5/6 flex flex-col">
-			<ul className="flex-1 overflow-auto bg-gradient-to-r from-zinc-950 to-zinc-900 border-2 border-border-color">
+			<ul className="flex-1 overflow-auto bg-gradient-to-r from-zinc-950 to-zinc-900 border-2 border-border-color mb-6">
 				{chatMessages}
 				{lastMessage && (
 					<li style={{ whiteSpace: "pre-line" }}>
@@ -113,7 +113,7 @@ const Home = () => {
 				<textarea
 					name="prompt"
 					placeholder="Enter your question here..."
-					className="chat-input rounded-md pl-6 pr-6 pt-2 pb-2"
+					className="chat-input block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
 					onKeyDownCapture={handleChatMessage}
 					autoFocus
 				/>

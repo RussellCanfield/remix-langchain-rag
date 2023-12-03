@@ -27,8 +27,6 @@ export class HttpRequestTool extends BaseTool {
 	}
 
 	override async execute(url: string): Promise<string> {
-		console.log("HTTP: ", url);
-
 		const sanitizedUrl = sanitizeURL(url);
 
 		const response = await fetch(new URL(sanitizedUrl));

@@ -93,8 +93,6 @@ const extractFinalAnswer = (input: string) => {
 
 	const actionInput = match[0] || "";
 
-	console.log("ACTION INPUT MATCH: ", actionInput);
-
 	return String(actionInput.replace(/[\n'`]/g, ""));
 };
 
