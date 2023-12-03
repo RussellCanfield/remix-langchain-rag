@@ -3,6 +3,8 @@ import ChatMessage from "../components/ChatMessage";
 import "react-lite-youtube-embed/dist/LiteYouTubeEmbed.css";
 import type { Message } from "../types/ChatMessage";
 
+let abortController: AbortController | undefined;
+
 const Home = () => {
 	const [lastMessage, setLastMessage] = useState<string | null>(null);
 	const [messages, setMessages] = useState<Message[]>([]);
@@ -17,6 +19,19 @@ const Home = () => {
 			let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 			const prompt = event.currentTarget.value;
 
+			if (abortController) {
+				abortController.abort();
+
+				setMessages((oldMessages) => [
+					...oldMessages,
+					{
+						from: "bot",
+						message:
+							"Sorry, let me know if you have another question that I can help you with.",
+					},
+				]);
+			}
+
 			setMessages((oldMessages) => [
 				...(oldMessages ?? []),
 				{
@@ -27,35 +42,44 @@ const Home = () => {
 
 			setLoading(true);
 
-			fetch(`/chat?prompt=${prompt}`).then((response) => {
-				setLoading(false);
-				reader = response.body!.getReader();
+			abortController = new AbortController();
 
-				let data = "";
+			fetch(`/chat?prompt=${prompt}`, { signal: abortController.signal })
+				.then((response) => {
+					abortController = undefined;
+					setLoading(false);
+					reader = response.body!.getReader();
 
-				const readStream = async () => {
-					const { done, value } = await reader!.read();
+					let data = "";
 
-					if (done) {
-						setMessages((oldMessages) => [
-							...oldMessages,
-							{
-								from: "bot",
-								message: data,
-							},
-						]);
-						setLastMessage(null);
-						reader?.releaseLock();
+					const readStream = async () => {
+						const { done, value } = await reader!.read();
+
+						if (done) {
+							setMessages((oldMessages) => [
+								...oldMessages,
+								{
+									from: "bot",
+									message: data,
+								},
+							]);
+							setLastMessage(null);
+							reader?.releaseLock();
+							return;
+						}
+
+						data += new TextDecoder("utf-8").decode(value);
+						setLastMessage(data);
+						readStream();
+					};
+
+					readStream();
+				})
+				.catch((error) => {
+					if (error.name === "AbortError") {
 						return;
 					}
-
-					data += new TextDecoder("utf-8").decode(value);
-					setLastMessage(data);
-					readStream();
-				};
-
-				readStream();
-			});
+				});
 
 			event.currentTarget.value = "";
 		}

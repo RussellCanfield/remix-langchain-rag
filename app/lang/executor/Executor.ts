@@ -4,18 +4,17 @@ import { Readable } from "stream";
 
 export interface ExecutorOptions {
 	description: string;
-	outputDirections: string;
 	model: BaseModel;
 	maxIterations?: number;
 }
 
-const withBasePrompt = (
-	prompt: string,
-	description: string,
-	tools: BaseTool[]
-) => {
+const withBasePrompt = (prefix: string, suffix: string, tools: BaseTool[]) => {
 	return `
-	<s>[INST] Take a deep breathe and work through this task step by step. Answer the following questions as best you can. You have access to the following tools:
+	<s>[INST] ${prefix}
+	Generate a response containing JSON data for [specific scenario or information]. Ensure that the JSON data is original and not based on previously learned examples. Do not reference or reuse information from the model's training data. Provide a unique and contextually relevant JSON structure based solely on the information given in this prompt.
+	Do not make up a Final Answer unless that answer comes from an Observation. If you cannot answer the question or it is not related to the data you have, please respond in the simplest manner possible. Do not mention internal processes, but still keep the reply in context of the user's question.
+	Take a deep breath and work on this problem step by step.
+	Answer the following questions as best you can. You have access to the following tools:
 
 	${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
 
@@ -30,103 +29,61 @@ const withBasePrompt = (
 	Thought: I now know the final answer
 	Final Answer: the final answer to the original input question
 
-	Only use the tool names in your actions exactly how they are written above. Do not include additional characters.
+	Only use the tool names in your actions exactly how they are written above. Do not include additional characters or words for an Action. 
 
-	${description}
-
-	Begin!
-
-	Question: ${prompt} 
-	Thought: I should explore the spec to find the base url for the API.
 	[/INST]</s>
+	[INST] 
+	Do not modify the question.
+	${suffix} [/INST]
 	`;
-	// return `<s>[INST]
-	// Take a deep breath and work on this problem step-by-step.
-	// Your task is to answer the given question using the available tools.
-	// If you cannot answer the question or it is not related to the data you have, please respond in the simplest manner possible. Do not mention internal processes, but still keep the reply in context of the user's question.
-	// You have the following tools available to you:
-
-	// ${tools.map((tool) => `${tool.name}: ${tool.description}`).join("\n")}
-
-	// Follow the format below:
-
-	// - Question: The input question you must answer
-	// - Thought: Your thought process
-	// - Action: The action to take, should be one of the available tools: ${tools
-	// 	.map((tool) => tool.name)
-	// 	.join(", ")} - use the tool name provided exactly.
-	// - Action Input: The input to the action
-	// - Observation: The result of the action
-	// - Repeat the Thought/Action/Action Input/Observation sequence as needed
-	// - Thought: Your final thoughts
-	// - Final Answer: The final answer to the original input question
-
-	// When thinking of an action, use the tool name exactly as it appears above. Do not include other words.
-	// Do not make up a response.
-
-	// ----
-
-	// ${description}
-
-	// [/INST]</s>
-
-	// Begin!
-
-	// [INST]
-	// Question: ${prompt}
-	// Thought: The server endpoint is in the OpenApi JSON document.
-	// [/INST]</s>
-	// `;
 };
 
 const streamToText = async (stream: AsyncIterable<Uint8Array>) => {
 	let result = "";
 	const decoder = new TextDecoder("utf-8");
 	for await (const chunk of stream) {
-		const { response } = JSON.parse(
-			decoder.decode(chunk, { stream: true })
-		);
-		result += response;
+		const text = decoder.decode(chunk, { stream: true });
+		try {
+			const { response } = JSON.parse(text);
+			result += response;
+		} catch (error) {
+			console.error("STREAM ERROR: ", text);
+		}
 	}
 
 	return result;
 };
 
-const extractToolFromAnswer = (input: string, tools: BaseTool[]) => {
-	let tool: string | undefined;
+type ExecutorStep = {
+	tool: string;
+	input: string;
+};
 
-	const sanitizedInput = input.replace(/[\n'`\\]/g, "");
+const extractSteps = (input: string): ExecutorStep[] => {
+	const steps: ExecutorStep[] = [];
+	const matches = input.match(
+		/(?<=Action: ).*(?=\nAction Input: )|(?<=Action Input: ).*/gm
+	);
 
-	for (const toolInstance of tools) {
-		if (sanitizedInput.includes(toolInstance.name)) {
-			tool = toolInstance.name;
-			break;
+	if (matches) {
+		for (let i = 0; i < matches.length; i++) {
+			const match = matches[i];
+			if (i % 2 === 0) {
+				steps.push({
+					tool: match,
+					input: "",
+				});
+			} else {
+				steps[steps.length - 1].input = match;
+			}
 		}
 	}
 
-	console.log("TOOL MATCH: ", tool);
-
-	return tool;
-};
-
-const extractActionInput = (input: string) => {
-	const regex = /(?<=Action Input: ).*/;
-
-	const match = input.match(regex);
-
-	if (!match) {
-		return undefined;
-	}
-
-	const actionInput = match[0] || "";
-
-	console.log("ACTION INPUT MATCH: ", actionInput);
-
-	return String(actionInput.replace(/[\n'`]/g, ""));
+	return steps;
 };
 
 const extractFinalAnswer = (input: string) => {
-	const regex = /(?<=Action Input: ).*/;
+	const regex = /(?<=Final Answer: ).*/gm;
 
 	const match = input.match(regex);
 
@@ -134,25 +91,38 @@ const extractFinalAnswer = (input: string) => {
 		return undefined;
 	}
 
-	console.log("RAW INPUT MATCH: ", match);
-
 	const actionInput = match[0] || "";
 
 	console.log("ACTION INPUT MATCH: ", actionInput);
 
 	return String(actionInput.replace(/[\n'`]/g, ""));
 };
+
+function getStream(str: string): ModelStream {
+	const response = {
+		response: str,
+		done: true,
+	};
+
+	const stream = new Readable({
+		read() {
+			this.push(JSON.stringify(response));
+			this.push(null);
+		},
+	});
+
+	return stream as unknown as ModelStream;
+}
 
 export class Executor {
 	tools: BaseTool[];
 	options: ExecutorOptions;
 	toolMap: Map<string, BaseTool>;
-	maxIterations: number;
+	steps: Set<string> = new Set();
 
 	constructor(tools: BaseTool[], options: ExecutorOptions) {
 		this.tools = tools;
 		this.options = options;
-		this.maxIterations = options.maxIterations ?? 10;
 
 		this.toolMap = new Map<string, BaseTool>(
 			tools.map((tool) => [tool.name, tool])
@@ -160,60 +130,66 @@ export class Executor {
 	}
 
 	async execute(question: string): Promise<ModelStream> {
-		const { model } = this.options;
+		const { model, maxIterations } = this.options;
+
 		const basePrompt = withBasePrompt(
-			question,
 			this.options.description,
+			`Begin!
+
+			Question: ${question}`,
 			this.tools
 		);
 
 		let prompt = basePrompt;
+		let iterator = 0;
 
-		for (let i = 0; i < this.maxIterations; i++) {
-			console.log("ITERATION: ", i);
-
-			const response = await streamToText(await model.getStream(prompt));
-
-			// prompt = prompt + `[INST] ${response} [/INST]</s>\n`;
-
-			console.log("RESPONSE: ", response);
-
-			const tool = extractToolFromAnswer(response, this.tools);
-
-			const toolInstance = this.toolMap.get(tool ?? "");
-
-			if (!toolInstance) {
-				console.log("DONE: ", prompt);
-				return await model.getStream(
-					prompt +
-						`[INST] ${this.options.outputDirections} [/INST]</s>\n`
+		try {
+			while (iterator < maxIterations!) {
+				const response = await streamToText(
+					await model.getStream(prompt)
 				);
+
+				prompt += `[INST] ${response} [/INST]\n`;
+
+				const steps = extractSteps(response);
+
+				if (!steps || steps.length === 0) {
+					throw new Error("No steps found");
+				}
+
+				for (const { tool, input } of steps) {
+					const toolInstance = this.toolMap.get(tool);
+
+					if (!toolInstance) {
+						throw new Error(`Tool not found: ${tool}`);
+					}
+
+					let toolResult = null;
+
+					toolResult = await toolInstance.execute(input);
+
+					if (toolResult) {
+						prompt += `[INST] Observation: ${toolResult} [/INST]\n`;
+					}
+				}
+
+				const finalAnswer = extractFinalAnswer(response);
+
+				if (finalAnswer) {
+					return getStream(finalAnswer);
+				}
+
+				iterator++;
 			}
-
-			const toolInput = extractActionInput(response);
-
-			let toolResult = null;
-
-			try {
-				toolResult = await toolInstance.execute(toolInput);
-			} catch (error) {
-				console.log("TOOL ERROR: ", error);
-				return await model.getStream(
-					`You are a helpful assistant! Unfortunately, I was unable to find the answer to your question.`
-				);
-			}
-
-			console.log("TOOL RESULT: ", toolResult);
-
-			if (toolResult) {
-				prompt += `Observation: ${toolResult}\n`;
-			}
-
-			//console.log("PROMPT: ", prompt);
+		} catch (error) {
+			console.error(error);
+			return getStream(
+				"Sorry, I am not able to answer the question at this time."
+			);
 		}
 
-		return Readable.from([
-			"Sorry I am unable to answer your question at this time.",
-		]) as unknown as ModelStream;
+		return getStream(
+			"Sorry, I am not able to answer the question at this time."
+		);
 	}
 }

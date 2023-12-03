@@ -31,8 +31,10 @@ export class Ollama implements BaseModel {
 				model: this.model,
 				prompt,
 				temperature: this.temperature,
-				k: this.k,
-				p: this.p,
+				options: {
+					top_k: this.k,
+					top_p: this.p,
+				},
 			}),
 		}).then((res) => res.body as ModelStream);
 }

@@ -13,7 +13,7 @@ export default function App() {
 	return (
 		<html lang="en">
 			<head>
-				<title>Micro Frontend RAG Chatbot</title>
+				<title>LLM Framework</title>
 				<meta charSet="utf-8" />
 				<meta
 					name="viewport"
@@ -26,7 +26,7 @@ export default function App() {
 				<div className="flex flex-col h-full">
 					<div className="h-32 bg-dark flex justify-center content-center flex-wrap min-h-[128px]">
 						<p className="text-slate-50 relative text-xl">
-							Micro Frontend RAG Chatbot
+							LLM Framework
 						</p>
 					</div>
 					<div className="flex-1 bg-dark pt-12 main-background">

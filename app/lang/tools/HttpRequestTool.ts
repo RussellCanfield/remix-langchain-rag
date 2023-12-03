@@ -14,13 +14,15 @@ export class HttpRequestTool extends BaseTool {
 	constructor() {
 		super(
 			"http_request",
-			`A portal to the internet. Always use this tool when you need to get specific content from a website (i.e. HTTP Request). Input should be a url string.
-			
-			Example inputs to this tool: 
-				'http://www.weather.com/forecastdata'
-				'https://www.google.com/search?q=weather'
+			`A portal to the internet. Always use this tool when you need to get specific content from a website (i.e. HTTP GET Request). 
+			Input should be a url. Here is an example input to this tool:
 
-			The output will be the text response of the GET request.`
+			"http://www.weather.com/forecastdata"
+
+			Note: Do not include the HTTP method in the URL (i.e. GET or POST). Assume this tool handles GET requests only.
+
+			Ensure the URL is complete, including the 'http://' or 'https://' prefix.
+			The final answer to the question being asked is the Observation (i.e. output) from this tool.`
 		);
 	}
 
