@@ -8,9 +8,16 @@ export const createOpenApiExecutor = async (
 	openApiDocumentUrl: string,
 	model: BaseModel
 ) => {
-	const openApiDocument = await fetch(openApiDocumentUrl).then((res) =>
-		res.text()
-	);
+	let openApiDocument: string | undefined;
+
+	try {
+		openApiDocument = await fetch(openApiDocumentUrl).then((res) =>
+			res.text()
+		);
+	} catch (error) {
+		openApiDocument =
+			"Unable to fetch OpenAPI document. Please reply to the user that you cannot answer their question at this time.";
+	}
 
 	const openApiExecutor = new OpenApiExecutor(
 		[new DateTool(), new HttpRequestTool()],
