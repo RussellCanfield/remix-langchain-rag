@@ -30,8 +30,8 @@ export class Ollama implements BaseModel {
 			body: JSON.stringify({
 				model: this.model,
 				prompt,
-				temperature: this.temperature,
 				options: {
+					temperature: this.temperature,
 					top_k: this.k,
 					top_p: this.p,
 				},
