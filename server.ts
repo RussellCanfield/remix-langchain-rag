@@ -36,7 +36,7 @@ app.get("/chat", async (req, res) => {
 
 	const model = new Ollama({
 		model: "zephyr",
-		temperature: 0,
+		temperature: 0.1,
 		p: 0.1,
 		k: 30,
 		baseUrl: "http://localhost:11434",

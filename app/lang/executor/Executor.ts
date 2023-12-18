@@ -29,7 +29,7 @@ const withBasePrompt = (prefix: string, suffix: string, tools: BaseTool[]) => {
 	Thought: I now know the final answer
 	Final Answer: the final answer to the original input question
 
-	Only use the tool names in your actions exactly how they are written above. Do not include additional characters or words for an Action. 
+	Only use the tool names in your actions exactly how they are written above. Do not include additional characters or words for an Action. Do not include tools that you do not have access to.
 
 	[/INST]</s>
 	[INST] 
@@ -61,9 +61,7 @@ type ExecutorStep = {
 
 const extractSteps = (input: string): ExecutorStep[] => {
 	const steps: ExecutorStep[] = [];
-	const matches = input.match(
-		/(?<=Action: ).*(?=\nAction Input: )|(?<=Action Input: ).*/gm
-	);
+	const matches = input.match(/(?<=Action: ).*|(?<=Input: ).*/gm);
 
 	if (matches) {
 		for (let i = 0; i < matches.length; i++) {
@@ -93,7 +91,7 @@ const extractFinalAnswer = (input: string) => {
 
 	const actionInput = match[0] || "";
 
-	return String(actionInput.replace(/[\n'`]/g, ""));
+	return String(actionInput.replace(/[\n'`\[\INST\]/]/g, "")).trimEnd();
 };
 
 function getStream(str: string): ModelStream {
@@ -127,6 +125,16 @@ export class Executor {
 		);
 	}
 
+	async processStep(prompt: string, tool: BaseTool, input: string) {
+		const toolResult = await tool.execute(input);
+
+		if (toolResult) {
+			return `[INST] Observation: ${toolResult} [/INST]\n`;
+		}
+
+		return null;
+	}
+
 	async execute(question: string): Promise<ModelStream> {
 		const { model, maxIterations } = this.options;
 
@@ -140,6 +148,7 @@ export class Executor {
 
 		let prompt = basePrompt;
 		let iterator = 0;
+		let toolIndex = 0;
 
 		try {
 			while (iterator < maxIterations!) {
@@ -151,31 +160,54 @@ export class Executor {
 
 				const steps = extractSteps(response);
 
-				if (!steps || steps.length === 0) {
+				console.log(response);
+				console.log(steps);
+
+				if (
+					!steps ||
+					steps.length === 0 ||
+					toolIndex === steps.length
+				) {
+					console.log("DONE: ", prompt);
+					const finalAnswer = extractFinalAnswer(response);
+
+					if (finalAnswer) {
+						return getStream(finalAnswer);
+					}
+
 					throw new Error("No steps found");
 				}
 
-				for (const { tool, input } of steps) {
-					const toolInstance = this.toolMap.get(tool);
+				const firstStep = steps[toolIndex];
 
-					if (!toolInstance) {
-						throw new Error(`Tool not found: ${tool}`);
+				if (!firstStep) {
+					console.log("DONE: ", prompt);
+					const finalAnswer = extractFinalAnswer(response);
+
+					if (finalAnswer) {
+						return getStream(finalAnswer);
 					}
 
-					let toolResult = null;
-
-					toolResult = await toolInstance.execute(input);
-
-					if (toolResult) {
-						prompt += `[INST] Observation: ${toolResult} [/INST]\n`;
-					}
+					throw new Error("No steps found");
 				}
 
-				const finalAnswer = extractFinalAnswer(response);
+				const toolInstance = this.toolMap.get(firstStep.tool);
 
-				if (finalAnswer) {
-					return getStream(finalAnswer);
+				if (!toolInstance) {
+					throw new Error(`Tool not found: ${firstStep.tool}`);
 				}
+
+				const toolResponse = await this.processStep(
+					prompt,
+					toolInstance,
+					firstStep.input
+				);
+
+				toolIndex++;
+
+				console.log(toolResponse);
+
+				prompt += toolResponse;
 
 				iterator++;
 			}

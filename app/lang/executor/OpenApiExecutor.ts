@@ -50,9 +50,13 @@ export const createOpenApiExecutor = async (
 
 			Hint: The server url is usually located under the 'servers' json key.
 
-			The response from the 'http_request' tool should be used to answer the question. Once you get a response, use this as the final answer to the question.
+			The response from the 'http_request' tool should be used as the final answer to the question. Here is an example of the expected response:
+
+			{"date":"2023-12-01","temperatureC":12,"temperatureF":53,"summary":"Freezing"} 
+
+			Once you get a response, use this as the final answer to the question by providing a summary of the JSON response using the fields 'temperatureF' and 'summary'. 
+			Do not add any additional information not present in the JSON data. Assume the information in the response is up to date and accurate.
 			Do not return answers using a special format (i.e. markdown). Use plain text responses only.
-			Summarize the JSON response based on the user's input, do not add any additional information not present in the JSON data.
 			
 			The OpenAPI spec document is as follows:
 			
